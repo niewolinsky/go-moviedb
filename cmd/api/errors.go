@@ -15,7 +15,10 @@ func (app *application) failedValidationResponse(w http.ResponseWriter, r *http.
 // book we'll upgrade this to use structured logging, and record additional information
 // about the request including the HTTP method and URL.
 func (app *application) logError(r *http.Request, err error) {
-	app.logger.Println(err)
+	app.logger.PrintError(err, map[string]string{
+		"request_method": r.Method,
+		"request_url":    r.URL.String(),
+	})
 }
 
 func (app *application) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
@@ -53,8 +56,7 @@ func (app *application) serverErrorResponse(w http.ResponseWriter, r *http.Reque
 	app.errorResponse(w, r, http.StatusInternalServerError, message)
 }
 
-// The notFoundResponse() method will be used to send a 404 Not Found status code and
-// JSON response to the client.
+// 404 error
 func (app *application) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 	message := "the requested resource could not be found"
 	app.errorResponse(w, r, http.StatusNotFound, message)
@@ -65,4 +67,9 @@ func (app *application) notFoundResponse(w http.ResponseWriter, r *http.Request)
 func (app *application) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request) {
 	message := fmt.Sprintf("the %s method is not supported for this resource", r.Method)
 	app.errorResponse(w, r, http.StatusMethodNotAllowed, message)
+}
+
+func (app *application) rateLimitExceededResponse(w http.ResponseWriter, r *http.Request) {
+	message := "rate limit exceeded"
+	app.errorResponse(w, r, http.StatusTooManyRequests, message)
 }
