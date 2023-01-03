@@ -1,18 +1,17 @@
 package main
 
 import (
-	"context"      // New import
-	"database/sql" // New import
+	"context"
+	"database/sql"
 	"flag"
 	"os"
+	"sync"
 	"time"
 
-	// Import the pq driver so that it can register itself with the database/sql
-	// package. Note that we alias this import to the blank identifier, to stop the Go
-	// compiler complaining that the package isn't being used.
 	_ "github.com/lib/pq"
 	"github.com/niewolinsky/go-moviedb/internal/data"
 	"github.com/niewolinsky/go-moviedb/internal/jsonlog"
+	"github.com/niewolinsky/go-moviedb/internal/mailer"
 )
 
 const version = "1.0.0"
@@ -31,12 +30,21 @@ type config struct {
 		burst   int
 		enabled bool
 	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
 }
 
 type application struct {
 	config config
 	logger *jsonlog.Logger
 	models data.Models
+	mailer mailer.Mailer
+	wg     sync.WaitGroup
 }
 
 func openDB(cfg config) (*sql.DB, error) {
@@ -64,7 +72,7 @@ func openDB(cfg config) (*sql.DB, error) {
 }
 
 func main() {
-	//define database config flags
+
 	var cfg config
 	flag.IntVar(&cfg.port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
@@ -77,13 +85,16 @@ func main() {
 	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
 
-	//load data to config variable from flags and os environment
+	flag.StringVar(&cfg.smtp.host, "smtp-host", "smtp.mailtrap.io", "SMTP host")
+	flag.IntVar(&cfg.smtp.port, "smtp-port", 25, "SMTP port")
+	flag.StringVar(&cfg.smtp.username, "smtp-username", "d94c768c045a34", "SMTP username")
+	flag.StringVar(&cfg.smtp.password, "smtp-password", "bfe1eb3c66075c", "SMTP password")
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Movie-DB <no-reply@niewolinsky.com>", "SMTP sender")
+
 	flag.Parse()
 
-	//initialize app logger
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 
-	//open database pool connection
 	db, err := openDB(cfg)
 	if err != nil {
 		logger.PrintFatal(err, nil)
@@ -91,12 +102,12 @@ func main() {
 	logger.PrintInfo("database connection pool established", nil)
 	defer db.Close()
 
-	//app-wide struct for data and methods
 	app := &application{
 		config: cfg,
 		logger: logger,
-		//passing the models
+
 		models: data.NewModels(db),
+		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
 
 	err = app.serve()
