@@ -15,6 +15,7 @@ func (app *application) createAuthenticationTokenHandler(w http.ResponseWriter, 
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
+
 	err := app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)

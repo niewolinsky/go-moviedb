@@ -13,7 +13,7 @@ type Validator struct {
 }
 
 func New() *Validator {
-	return &Validator{Errors: make(map[string]string)}
+	return &Validator{Errors: map[string]string{}}
 }
 
 func (v *Validator) Valid() bool {

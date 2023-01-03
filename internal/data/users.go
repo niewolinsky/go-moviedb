@@ -42,11 +42,14 @@ type password struct {
 
 func (p *password) Set(plaintextPassword string) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(plaintextPassword), 12)
+
 	if err != nil {
 		return err
 	}
+
 	p.plaintext = &plaintextPassword
 	p.hash = hash
+
 	return nil
 }
 
@@ -105,6 +108,7 @@ func (m UserModel) Insert(user *User) error {
 			return err
 		}
 	}
+
 	return nil
 }
 

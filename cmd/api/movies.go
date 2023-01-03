@@ -16,6 +16,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		Runtime data.Runtime `json:"runtime"`
 		Genres  []string     `json:"genres"`
 	}
+
 	err := app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
@@ -28,6 +29,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		Runtime: input.Runtime,
 		Genres:  input.Genres,
 	}
+
 	v := validator.New()
 	if data.ValidateMovie(v, movie); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
@@ -107,7 +109,6 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 	if input.Title != nil {
 		movie.Title = *input.Title
 	}
-
 	if input.Year != nil {
 		movie.Year = *input.Year
 	}
@@ -117,16 +118,19 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 	if input.Genres != nil {
 		movie.Genres = input.Genres
 	}
+
 	v := validator.New()
 	if data.ValidateMovie(v, movie); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
+
 	err = app.models.Movies.Update(movie)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
+
 	err = app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -160,11 +164,11 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 
 func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
 
-	var input struct {
+	input := struct {
 		Title  string
 		Genres []string
 		data.Filters
-	}
+	}{}
 
 	v := validator.New()
 

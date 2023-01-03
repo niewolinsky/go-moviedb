@@ -54,7 +54,7 @@ func (m MovieModel) Insert(movie *Movie) error {
 	return m.DB.QueryRowContext(ctx, query, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
 }
 
-func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]Movie, Metadata, error) {
 
 	query := fmt.Sprintf(`
 		SELECT count(*) OVER(), id, created_at, title, year, runtime, genres, version
@@ -63,9 +63,12 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 		AND (genres @> $2 OR $2 = '{}')
 		ORDER BY %s %s, id ASC
 		LIMIT $3 OFFSET $4`, filters.sortColumn(), filters.sortDirection())
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
+
 	args := []interface{}{title, pq.Array(genres), filters.limit(), filters.offset()}
+
 	rows, err := m.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, Metadata{}, err
@@ -73,9 +76,9 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 	defer rows.Close()
 
 	totalRecords := 0
-	movies := []*Movie{}
+	movies := []Movie{}
 	for rows.Next() {
-		var movie Movie
+		movie := Movie{}
 		err := rows.Scan(
 			&totalRecords,
 			&movie.ID,
@@ -89,7 +92,7 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 		if err != nil {
 			return nil, Metadata{}, err
 		}
-		movies = append(movies, &movie)
+		movies = append(movies, movie)
 	}
 	if err = rows.Err(); err != nil {
 		return nil, Metadata{}, err
@@ -111,7 +114,7 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 	FROM movies
 	WHERE id = $1`
 
-	var movie Movie
+	movie := Movie{}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -196,5 +199,6 @@ func (m MovieModel) Delete(id int64) error {
 	if rowsAffected == 0 {
 		return ErrRecordNotFound
 	}
+
 	return nil
 }

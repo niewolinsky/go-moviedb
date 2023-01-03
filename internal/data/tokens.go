@@ -60,6 +60,7 @@ func (m TokenModel) New(userID int64, ttl time.Duration, scope string) (*Token, 
 	if err != nil {
 		return nil, err
 	}
+
 	err = m.Insert(token)
 	return token, err
 }
