@@ -14,7 +14,7 @@ import (
 	"github.com/niewolinsky/go-moviedb/internal/mailer"
 )
 
-const version = "1.0.0"
+const version = "1.1.0"
 
 type config struct {
 	port int
