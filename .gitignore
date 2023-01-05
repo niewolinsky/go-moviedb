@@ -15,7 +15,13 @@
 *.out
 
 # Dependency directories (remove the comment below to include it)
-# vendor/
+vendor/
+
+# Builds
+bin/
+
+# Environment variables
+*.env
 
 # Go workspace file
 go.work

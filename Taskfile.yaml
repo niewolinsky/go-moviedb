@@ -1,0 +1,47 @@
+version: '3'
+
+dotenv: ['.env']
+
+tasks:
+    #APP SCRIPTS
+    run/api:
+        - go run ./cmd/api -version -db-dsn=$MOVIE_DB_DSN
+
+    build/api:
+        - echo 'Building cmd/api...'
+        - go build -ldflags='-s' -o=./bin/api ./cmd/api
+
+
+    #DB SCRIPTS        
+    db/psql:
+        - psql $MOVIE_DB_DSN
+        
+    db/migrations/new:
+        - echo 'Creating migration files named {{.name}}...'
+        - migrate create -seq -ext=.sql -dir=./migrations {{.name}}
+        
+    db/migrations/up:
+        - echo "Running up migrations..."
+        - migrate -path ./migrations -database $MOVIE_DB_DSN up
+
+    #MAINTENANCE SCRIPTS
+    audit:
+        - task: vendor
+        - echo 'Tidying and verifying module dependencies...'
+        - go mod tidy
+        - go mod verify
+        - echo 'Formatting code...'
+        - go fmt ./...
+        - echo 'Vetting code...'
+        - go vet ./...
+        - staticcheck ./...
+        - echo 'Running tests...'
+        - go test -race -vet=off ./...
+
+    vendor:
+        - echo 'Tidying and verifying module dependencies...'
+        - go mod tidy
+        - go mod verify
+        - echo 'Vendoring dependencies...'
+        - go mod vendor
+
